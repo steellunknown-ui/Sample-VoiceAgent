@@ -6,7 +6,6 @@ Captures mic audio and transcribes it with language detection.
 import io
 import os
 import numpy as np
-import sounddevice as sd
 import soundfile as sf
 from faster_whisper import WhisperModel
 from dotenv import load_dotenv
@@ -49,7 +48,10 @@ def record_audio(max_duration: int = 30) -> np.ndarray:
     chunk_size = int(SAMPLE_RATE * 0.1)  # 100ms chunks
     max_silence_chunks = int(SILENCE_DURATION / 0.1)
     max_chunks = int(max_duration / 0.1)
-    spoken = False
+    try:
+        import sounddevice as sd
+    except ImportError:
+        raise RuntimeError("sounddevice is not installed or audio drivers are not available on this system.")
 
     with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="float32") as stream:
         for _ in range(max_chunks):
