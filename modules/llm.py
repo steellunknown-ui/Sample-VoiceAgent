@@ -5,6 +5,7 @@ and inappropriate content filtering.
 """
 
 import os
+import httpx
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -70,6 +71,7 @@ def get_client() -> OpenAI:
         _client = OpenAI(
             api_key=OPENROUTER_API_KEY,
             base_url="https://openrouter.ai/api/v1",
+            http_client=httpx.Client(),
             default_headers={
                 "HTTP-Referer": "https://voice-agent.local",
                 "X-Title": f"{AGENT_NAME} Voice Agent",
