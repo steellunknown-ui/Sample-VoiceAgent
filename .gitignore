@@ -40,6 +40,10 @@ scratch/
 temp/
 tmp/
 
+# Binaries & Executables
+*.exe
+cloudflared*
+
 # IDE & OS Metadata
 .vscode/
 .idea/

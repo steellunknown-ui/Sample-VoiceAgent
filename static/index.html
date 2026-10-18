@@ -18,8 +18,11 @@
   <!-- Main Application Grid -->
   <div class="app-shell">
 
+    <!-- Mobile Drawer Backdrop Overlay -->
+    <div class="deck-backdrop" id="deckBackdrop" onclick="closeMobileDeck()"></div>
+
     <!-- ── Sidebar Control Deck ── -->
-    <aside class="control-deck">
+    <aside class="control-deck" id="controlDeck">
       
       <!-- Brand & Profile -->
       <div class="deck-header">
@@ -28,8 +31,14 @@
           <span class="brand-title">Aria AI</span>
           <span class="brand-version">v2.4</span>
         </div>
-        <p class="brand-subtitle">Enterprise Multilingual Voice Agent</p>
+        <button class="deck-close-btn" id="closeDeckBtn" onclick="closeMobileDeck()" title="Close menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
+      <p class="brand-subtitle">Enterprise Multilingual Voice Agent</p>
 
       <!-- Agent Status Card -->
       <div class="agent-profile-card">
@@ -178,6 +187,15 @@
       <!-- Stage Top Navigation -->
       <header class="stage-topbar">
         <div class="topbar-left">
+          <!-- Mobile Menu Trigger -->
+          <button class="mobile-menu-btn" id="mobileMenuBtn" onclick="openMobileDeck()" title="Settings & Models">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          
           <div class="active-mode-badge" id="currentModeBadge">
             <span class="mode-indicator-pulse"></span>
             <span class="mode-name" id="stageModeName">Hands-Free Live</span>
@@ -202,6 +220,27 @@
           </div>
         </div>
       </header>
+
+      <!-- Mobile Fast Language Bar -->
+      <div class="mobile-quick-strip">
+        <div class="mobile-lang-chips">
+          <button class="m-lang-chip active" id="mChipEn" onclick="selectLanguage('en')">
+            <span class="m-chip-flag">🇬🇧</span>
+            <span class="m-chip-label">English</span>
+            <span class="m-chip-engine">ElevenLabs</span>
+          </button>
+          <button class="m-lang-chip" id="mChipHi" onclick="selectLanguage('hi')">
+            <span class="m-chip-flag">🇮🇳</span>
+            <span class="m-chip-label">Hinglish</span>
+            <span class="m-chip-engine">Sarvam</span>
+          </button>
+          <button class="m-lang-chip" id="mChipMr" onclick="selectLanguage('mr')">
+            <span class="m-chip-flag">🇮🇳</span>
+            <span class="m-chip-label">मराठी</span>
+            <span class="m-chip-engine">Sarvam</span>
+          </button>
+        </div>
+      </div>
 
       <!-- Center Voice Visualizer & Orb Stage -->
       <section class="visualizer-stage" id="visualizerStage">

@@ -214,10 +214,18 @@ function stopWaveform() {
 function selectLanguage(langCode) {
   activeLanguage = langCode;
 
-  // Update card UI
-  cardLangEn.classList.toggle('active', langCode === 'en');
-  cardLangHi.classList.toggle('active', langCode === 'hi');
-  cardLangMr.classList.toggle('active', langCode === 'mr');
+  // Update card UI (desktop sidebar)
+  if (cardLangEn) cardLangEn.classList.toggle('active', langCode === 'en');
+  if (cardLangHi) cardLangHi.classList.toggle('active', langCode === 'hi');
+  if (cardLangMr) cardLangMr.classList.toggle('active', langCode === 'mr');
+
+  // Update mobile quick chips
+  const mChipEn = document.getElementById('mChipEn');
+  const mChipHi = document.getElementById('mChipHi');
+  const mChipMr = document.getElementById('mChipMr');
+  if (mChipEn) mChipEn.classList.toggle('active', langCode === 'en');
+  if (mChipHi) mChipHi.classList.toggle('active', langCode === 'hi');
+  if (mChipMr) mChipMr.classList.toggle('active', langCode === 'mr');
 
   // Update Telemetry & Badges
   if (langCode === 'en') {
@@ -237,7 +245,22 @@ function selectLanguage(langCode) {
     textInput.placeholder = 'मराठीत टाइप करा (Sarvam.ai आवाज चाचणी)...';
   }
 
-  showToast(`Language set to ${langCode.toUpperCase()} (${activeEngineDisplay.textContent})`);
+  showToast(`Language: ${langCode.toUpperCase()} (${activeEngineDisplay.textContent})`);
+}
+
+// ── Mobile Drawer Open / Close ──
+function openMobileDeck() {
+  const deck = document.getElementById('controlDeck');
+  const backdrop = document.getElementById('deckBackdrop');
+  if (deck) deck.classList.add('mobile-open');
+  if (backdrop) backdrop.classList.add('active');
+}
+
+function closeMobileDeck() {
+  const deck = document.getElementById('controlDeck');
+  const backdrop = document.getElementById('deckBackdrop');
+  if (deck) deck.classList.remove('mobile-open');
+  if (backdrop) backdrop.classList.remove('active');
 }
 
 // ═════════════════════════════════════════════════════════════
