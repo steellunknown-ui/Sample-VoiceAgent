@@ -1,0 +1,46 @@
+# ==============================================================================
+# Environment & Secrets (CRITICAL: NEVER COMMIT REAL CREDENTIALS)
+# ==============================================================================
+.env
+.env*.local
+.env.backup
+*.env
+
+# Explicitly allow the safe template example
+!.env.example
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Audio dumps & temporary logs
+*.wav
+*.mp3
+*.ogg
+*.webm
+*.log
+scratch/
+temp/
+tmp/
+
+# IDE & OS Metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

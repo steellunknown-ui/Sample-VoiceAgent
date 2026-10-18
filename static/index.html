@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aria AI — Enterprise Multilingual Voice Console</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Modern Clean Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Ambient Blue Dust Canvas -->
+  <canvas id="particleCanvas"></canvas>
+
+  <!-- Main Application Grid -->
+  <div class="app-shell">
+
+    <!-- ── Sidebar Control Deck ── -->
+    <aside class="control-deck">
+      
+      <!-- Brand & Profile -->
+      <div class="deck-header">
+        <div class="brand-badge">
+          <div class="brand-pulse-blue"></div>
+          <span class="brand-title">Aria AI</span>
+          <span class="brand-version">v2.4</span>
+        </div>
+        <p class="brand-subtitle">Enterprise Multilingual Voice Agent</p>
+      </div>
+
+      <!-- Agent Status Card -->
+      <div class="agent-profile-card">
+        <div class="agent-avatar-wrap">
+          <div class="agent-avatar-core">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <div class="avatar-ring-pulse"></div>
+        </div>
+        <div class="agent-profile-info">
+          <span class="agent-name">Aria Assistant</span>
+          <div class="agent-live-badge" id="agentStatusBadge">
+            <span class="status-indicator-dot"></span>
+            <span class="status-indicator-text" id="agentStatusText">Online · Ready</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SECTION 1: LANGUAGE & MODEL SELECTION ── -->
+      <div class="deck-section">
+        <div class="section-header-wrap">
+          <span class="deck-section-label">Language & Voice Model</span>
+          <span class="section-tag-blue">Strict Binding</span>
+        </div>
+        
+        <div class="language-model-selector">
+          <!-- 1. English -> ElevenLabs -->
+          <div class="lang-model-card active" id="cardLangEn" onclick="selectLanguage('en')">
+            <div class="card-radio-dot"></div>
+            <div class="card-content">
+              <div class="card-top">
+                <span class="lang-flag">🇬🇧</span>
+                <span class="lang-title">English</span>
+                <span class="engine-badge eleven">ElevenLabs</span>
+              </div>
+              <p class="card-desc">George Voice (Warm & Deep Male)</p>
+            </div>
+          </div>
+
+          <!-- 2. Hinglish -> Sarvam AI -->
+          <div class="lang-model-card" id="cardLangHi" onclick="selectLanguage('hi')">
+            <div class="card-radio-dot"></div>
+            <div class="card-content">
+              <div class="card-top">
+                <span class="lang-flag">🇮🇳</span>
+                <span class="lang-title">Hinglish</span>
+                <span class="engine-badge sarvam">Sarvam.ai</span>
+              </div>
+              <p class="card-desc">Ashutosh (Indian Male)</p>
+            </div>
+          </div>
+
+          <!-- 3. Marathi -> Sarvam AI -->
+          <div class="lang-model-card" id="cardLangMr" onclick="selectLanguage('mr')">
+            <div class="card-radio-dot"></div>
+            <div class="card-content">
+              <div class="card-top">
+                <span class="lang-flag">🇮🇳</span>
+                <span class="lang-title">मराठी (Marathi)</span>
+                <span class="engine-badge sarvam">Sarvam.ai</span>
+              </div>
+              <p class="card-desc">Ashutosh (Marathi Male)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="fallback-note-box">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <span>If credits reach 0, <strong>Edge-TTS</strong> automatically takes over as free fallback.</span>
+        </div>
+      </div>
+
+      <!-- ── SECTION 2: INTERACTION MODE ── -->
+      <div class="deck-section">
+        <div class="section-header-wrap">
+          <span class="deck-section-label">Interaction Mode</span>
+        </div>
+
+        <div class="interaction-mode-pills">
+          <button class="mode-select-btn active" id="btnModeLive" onclick="setInteractionMode('live')">
+            <div class="btn-dot-live"></div>
+            <div class="btn-mode-texts">
+              <span class="btn-mode-main">Hands-Free</span>
+              <span class="btn-mode-sub">Continuous live voice</span>
+            </div>
+          </button>
+          
+          <button class="mode-select-btn" id="btnModePush" onclick="setInteractionMode('push')">
+            <div class="btn-dot-push"></div>
+            <div class="btn-mode-texts">
+              <span class="btn-mode-main">Push-to-Talk</span>
+              <span class="btn-mode-sub">Click to talk</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── SECTION 3: SYSTEM TELEMETRY ── -->
+      <div class="deck-section telemetry-section">
+        <div class="section-header-wrap">
+          <span class="deck-section-label">Active System Status</span>
+        </div>
+        
+        <div class="telemetry-grid">
+          <div class="telemetry-item">
+            <span class="tele-label">Active Voice Engine</span>
+            <span class="tele-val highlight" id="activeEngineDisplay">ElevenLabs (George)</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="tele-label">Language Mode</span>
+            <span class="tele-val" id="activeLanguageDisplay">English (Locked)</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="tele-label">Core LLM</span>
+            <span class="tele-val mono" id="activeModelDisplay">nemotron-3-super-120b</span>
+          </div>
+          <div class="telemetry-item">
+            <span class="tele-label">Edge-TTS Fallback</span>
+            <span class="tele-val ready">Standby ✓</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deck Footer -->
+      <div class="deck-footer">
+        <button class="action-btn-clean" id="clearChatBtn" onclick="clearConversation()">
+          <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.72"/>
+          </svg>
+          Reset Session
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- ── Main Voice Stage ── -->
+    <main class="voice-stage">
+
+      <!-- Stage Top Navigation -->
+      <header class="stage-topbar">
+        <div class="topbar-left">
+          <div class="active-mode-badge" id="currentModeBadge">
+            <span class="mode-indicator-pulse"></span>
+            <span class="mode-name" id="stageModeName">Hands-Free Live</span>
+          </div>
+          <div class="active-engine-badge" id="currentEngineBadge">
+            <span class="engine-indicator-dot"></span>
+            <span id="stageEngineName">Voice: ElevenLabs (George)</span>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Live Session Controls -->
+          <div class="live-stage-controls" id="liveControlsBar">
+            <button class="stage-ctrl-btn interrupt-btn hidden" id="interruptBtn" onclick="interruptAgent()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              Interrupt
+            </button>
+            <button class="stage-ctrl-btn pause-live-btn" id="pauseLiveBtn" onclick="toggleHandsFreePause()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+              <span id="pauseLiveBtnText">Pause Live</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Center Voice Visualizer & Orb Stage -->
+      <section class="visualizer-stage" id="visualizerStage">
+        
+        <!-- Live Ambient Pulse Orb (ChatGPT/Gemini Live Style) -->
+        <div class="ambient-orb-wrapper" id="ambientOrbWrap">
+          <div class="ambient-orb state-listening" id="ambientOrb">
+            <div class="orb-core-glow"></div>
+            <div class="orb-ring-1"></div>
+            <div class="orb-ring-2"></div>
+            <div class="orb-ring-3"></div>
+            <div class="orb-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Status Subtext -->
+        <div class="visualizer-status-wrap">
+          <h3 class="visualizer-status-title" id="orbStatusTitle">Listening... Speak naturally</h3>
+          <p class="visualizer-status-subtitle" id="orbStatusSubtitle">Pause for ~1s when finished; Aria will reply automatically</p>
+        </div>
+
+        <!-- Audio Frequency Spectrum Canvas -->
+        <div class="waveform-canvas-wrap">
+          <canvas id="waveformCanvas" width="700" height="54"></canvas>
+        </div>
+      </section>
+
+      <!-- Conversation Messages Stream -->
+      <section class="conversation-stream" id="chatContainer">
+        
+        <!-- Welcome Card -->
+        <div class="welcome-card-bespoke" id="welcomeMsg">
+          <div class="welcome-badge-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2">
+              <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </div>
+          <h2 class="welcome-title">Aria Voice Console Ready</h2>
+          <p class="welcome-lead">
+            Select your language in the sidebar and talk freely. 
+            <strong>English</strong> routes to ElevenLabs, while <strong>Hinglish and Marathi</strong> route directly to Sarvam.ai.
+          </p>
+          <div class="welcome-presets">
+            <button class="preset-chip" onclick="handlePresetClick('Hello Aria, how are you today?', 'en')">
+              <span>🇬🇧</span> "Hello Aria, how are you today?"
+            </button>
+            <button class="preset-chip" onclick="handlePresetClick('Aria yaar, mera WiFi connect nahi ho raha', 'hi')">
+              <span>🇮🇳</span> "Aria yaar, WiFi connect nahi ho raha"
+            </button>
+            <button class="preset-chip" onclick="handlePresetClick('Aria, तुमचं नाव काय आहे?', 'mr')">
+              <span>🇮🇳</span> "Aria, तुमचं नाव काय आहे?"
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Bottom Interactive Dock -->
+      <footer class="interaction-dock">
+        
+        <!-- Push-to-Talk Mic Trigger -->
+        <div class="mic-dock-action">
+          <button class="bespoke-mic-btn" id="micBtn" onclick="handleMicButtonClick()" title="Click to speak">
+            <div class="btn-ripple-rings"></div>
+            <div class="mic-glyph">
+              <!-- Mic Icon -->
+              <svg class="glyph-mic" id="micIcon" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2a3 3 0 0 1 3 3v7a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+              <!-- Stop Icon -->
+              <svg class="glyph-stop hidden" id="stopIcon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="4" y="4" width="16" height="16" rx="3"/>
+              </svg>
+            </div>
+          </button>
+          <span class="dock-hint" id="dockHintText">Hands-Free Active</span>
+        </div>
+
+        <!-- Optional Text Query Input -->
+        <div class="text-query-wrap">
+          <textarea
+            id="textInput"
+            class="text-query-input"
+            placeholder="Or type a message to test voice response..."
+            rows="1"
+            onkeydown="handleTextKeydown(event)"
+            oninput="autoResizeTextarea(this)"
+          ></textarea>
+          <button class="query-send-btn" id="sendBtn" onclick="sendTextMessage()" title="Send">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </button>
+        </div>
+
+      </footer>
+
+    </main>
+  </div>
+
+  <!-- Loading State Overlay -->
+  <div class="processing-modal hidden" id="processingOverlay">
+    <div class="processing-dialog">
+      <div class="processing-spinner-blue"></div>
+      <p id="processingText">Processing voice turn...</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
