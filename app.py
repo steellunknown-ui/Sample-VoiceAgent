@@ -211,12 +211,15 @@ def session_stats():
 # ── Startup ──────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print(f"""\n===========================================\n  Voice Agent: {AGENT_NAME}\n  Multilingual: EN + Hinglish + Marathi\n===========================================\n\n  Server starting on http://localhost:{PORT}\n  Open browser: http://localhost:{PORT}\n\nPre-loading Whisper STT model...\n""")
-    
-    # Pre-load models on startup for faster first response
-    try:
-        get_stt_model()
-    except Exception as e:
-        print(f"⚠️  STT model pre-load failed: {e}")
-    
+    print(f"""
+===========================================
+  Voice Agent: {AGENT_NAME}
+  Multilingual: EN + Hinglish + Marathi
+===========================================
+
+  Server starting on http://localhost:{PORT}
+  Open browser: http://localhost:{PORT}
+
+  STT model: lazy-load on first request (saves RAM)
+""")
     app.run(host=HOST, port=PORT, debug=False, threaded=True)

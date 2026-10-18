@@ -12,6 +12,24 @@ import re
 import base64
 import asyncio
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# Persistent session with retries for cloud resilience
+_http_session = None
+
+def get_http_session() -> requests.Session:
+    global _http_session
+    if _http_session is None:
+        _http_session = requests.Session()
+        retry = Retry(
+            total=2,
+            backoff_factor=0.3,
+            status_forcelist=[500, 502, 503, 504]
+        )
+        adapter = HTTPAdapter(max_retries=retry, pool_connections=4, pool_maxsize=8)
+        _http_session.mount('https://', adapter)
+    return _http_session
 import edge_tts
 from dotenv import load_dotenv
 
@@ -137,7 +155,7 @@ def _synthesize_sarvam(text: str, lang_code: str) -> bytes:
             "model": "bulbul:v3"
         }
         
-        resp = requests.post(url, headers=headers, json=payload, timeout=8)
+        resp = get_http_session().post(url, headers=headers, json=payload, timeout=15)
         if resp.status_code == 200:
             data = resp.json()
             audios = data.get("audios", [])
@@ -174,14 +192,17 @@ def _synthesize_elevenlabs(text: str) -> bytes:
         }
         payload = {
             "text": text,
-            "model_id": "eleven_multilingual_v2",
+            "model_id": "eleven_turbo_v2_5",   # Fastest ElevenLabs model (~300ms vs ~1.5s)
             "voice_settings": {
-                "stability": 0.5,
-                "similarity_boost": 0.75
-            }
+                "stability": 0.45,
+                "similarity_boost": 0.70,
+                "style": 0.0,
+                "use_speaker_boost": False      # Disable to save latency
+            },
+            "optimize_streaming_latency": 3     # Max latency optimization
         }
         
-        resp = requests.post(url, headers=headers, json=payload, timeout=8)
+        resp = get_http_session().post(url, headers=headers, json=payload, timeout=15)
         if resp.status_code == 200 and resp.content:
             print(f"[TTS-ElevenLabs] Success ✓ ({len(resp.content)} bytes MP3)")
             return resp.content
