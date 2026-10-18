@@ -5,6 +5,8 @@
 .env*.local
 .env.backup
 *.env
+vercel_env.csv
+*.csv
 
 # Explicitly allow the safe template example
 !.env.example
