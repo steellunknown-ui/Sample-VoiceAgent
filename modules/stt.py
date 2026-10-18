@@ -29,7 +29,7 @@ def get_model():
             compute_type="int8",
             num_workers=1       # Render free tier is single-core; don't over-thread
         )
-        print("[STT] Whisper model loaded ✓")
+        print("[STT] Whisper model loaded [OK]")
     return _model
 
 
@@ -114,7 +114,8 @@ def transcribe_audio_bytes(audio_bytes: bytes, target_language: str = None) -> d
             detected_lang = target_language if target_language in ("en", "hi", "mr") else "en"
 
         confidence = info.language_probability
-        print(f"[STT] Transcribed: '{text}' | Lang: {detected_lang} ({confidence:.2f})")
+        safe_text = text.encode('ascii', 'replace').decode()
+        print(f"[STT] Transcribed: '{safe_text}' | Lang: {detected_lang} ({confidence:.2f})")
 
         return {
             "text": text,

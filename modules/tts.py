@@ -63,15 +63,20 @@ EDGE_PITCH = os.getenv("TTS_PITCH", "+0Hz")
 
 def detect_response_language(text: str, detected_input_lang: str) -> str:
     """
-    Determine which language to use based on text content and input language.
+    Determine which language to use based on user selection and text content.
+    Strictly respects the user's active language selection.
     """
-    marathi_chars = sum(1 for c in text if "\u0900" <= c <= "\u097F")
-    if marathi_chars > 5 or detected_input_lang == "mr":
+    if detected_input_lang in ("mr", "marathi"):
         return "mr"
-    
-    if detected_input_lang in ("hi", "ur", "hinglish"):
+    if detected_input_lang in ("hi", "hinglish", "ur", "hindi"):
         return "hi"
-    
+    if detected_input_lang in ("en", "english"):
+        return "en"
+
+    # Fallback for unknown
+    deva_chars = sum(1 for c in text if "\u0900" <= c <= "\u097F")
+    if deva_chars > 5:
+        return "hi"
     return "en"
 
 
@@ -161,12 +166,12 @@ def _synthesize_sarvam(text: str, lang_code: str) -> bytes:
             audios = data.get("audios", [])
             if audios and audios[0]:
                 audio_bytes = base64.b64decode(audios[0])
-                print(f"[TTS-Sarvam] Success ✓ ({len(audio_bytes)} bytes WAV)")
+                print(f"[TTS-Sarvam] [OK] Success ({len(audio_bytes)} bytes WAV)")
                 return audio_bytes
         elif resp.status_code in (401, 402, 429):
-            print(f"[TTS-Sarvam] ⚠️ Quota or credit limit reached ({resp.status_code}). Seamlessly using free Edge-TTS fallback.")
+            print(f"[TTS-Sarvam] [WARN] Quota or credit limit reached ({resp.status_code}). Seamlessly using free Edge-TTS fallback.")
         else:
-            print(f"[TTS-Sarvam] Warning ({resp.status_code}): {resp.text[:150]}")
+            print(f"[TTS-Sarvam] [WARN] ({resp.status_code}): {resp.text[:150]}")
     except Exception as e:
         print(f"[TTS-Sarvam] Exception: {e}")
     
@@ -204,12 +209,12 @@ def _synthesize_elevenlabs(text: str) -> bytes:
         
         resp = get_http_session().post(url, headers=headers, json=payload, timeout=15)
         if resp.status_code == 200 and resp.content:
-            print(f"[TTS-ElevenLabs] Success ✓ ({len(resp.content)} bytes MP3)")
+            print(f"[TTS-ElevenLabs] [OK] Success ({len(resp.content)} bytes MP3)")
             return resp.content
         elif resp.status_code in (401, 402, 429):
-            print(f"[TTS-ElevenLabs] ⚠️ Quota or credit limit reached ({resp.status_code}). Seamlessly using free Edge-TTS fallback.")
+            print(f"[TTS-ElevenLabs] [WARN] Quota or credit limit reached ({resp.status_code}). Seamlessly using free Edge-TTS fallback.")
         else:
-            print(f"[TTS-ElevenLabs] Warning ({resp.status_code}): {resp.text[:150]}")
+            print(f"[TTS-ElevenLabs] [WARN] ({resp.status_code}): {resp.text[:150]}")
     except Exception as e:
         print(f"[TTS-ElevenLabs] Exception: {e}")
     

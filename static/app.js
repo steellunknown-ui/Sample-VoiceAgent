@@ -34,10 +34,16 @@ let audioCtx = null;
 let analyser = null;
 let vadAnimationFrameId = null;
 let silenceTimer = null;
+let maxSpeechWatchdogTimer = null;
 let speechStartTime = 0;
-const VAD_SILENCE_TIMEOUT_MS = 1000;  // 1.0s silence = turn complete
-const VAD_SPEECH_THRESHOLD = 0.026;   // RMS sensitivity
-const VAD_MIN_SPEECH_MS = 450;        // Minimum speech duration to prevent click false-triggers
+let lastActiveVoiceTime = 0;
+let voiceConsecutiveFrames = 0;
+let ambientNoiseFloor = 0.025;         // Dynamic baseline noise tracking
+
+const VAD_MIN_FRAMES_TO_START = 4;    // ~60-80ms continuous energy required to trigger speech
+const VAD_SILENCE_TIMEOUT_MS = 1100;  // 1.1s of quiet after speech = user is done
+const VAD_MIN_SPEECH_MS = 450;        // Minimum real speech duration (excludes noise clicks)
+const VAD_MAX_SPEECH_MS = 14000;      // 14s watchdog limit to prevent infinite recording
 
 // Waveform
 let waveformCanvas = null;
@@ -307,10 +313,19 @@ function stopHandsFreeSession() {
   isLiveActive = false;
   isUserSpeaking = false;
   isAgentSpeaking = false;
+  isProcessing = false;
+  voiceConsecutiveFrames = 0;
+  lastActiveVoiceTime = 0;
+  speechStartTime = 0;
 
   if (silenceTimer) {
     clearTimeout(silenceTimer);
     silenceTimer = null;
+  }
+
+  if (maxSpeechWatchdogTimer) {
+    clearTimeout(maxSpeechWatchdogTimer);
+    maxSpeechWatchdogTimer = null;
   }
 
   if (vadAnimationFrameId) {
@@ -363,9 +378,12 @@ function startLiveRecorderSlice() {
 
   audioChunks = [];
   try {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      try { mediaRecorder.stop(); } catch (e) {}
+    }
     mediaRecorder = new MediaRecorder(audioStream, { mimeType: getAudioMimeType() });
     mediaRecorder.ondataavailable = e => {
-      if (e.data.size > 0) audioChunks.push(e.data);
+      if (e.data && e.data.size > 0) audioChunks.push(e.data);
     };
     mediaRecorder.start(100);
   } catch (err) {
@@ -382,7 +400,7 @@ function startVADLoop() {
   function checkVolume() {
     if (!isLiveActive || isLivePaused) return;
 
-    // Do NOT capture microphone while Aria is speaking (prevents echo loop)
+    // Do NOT capture microphone while Aria is speaking or processing (prevents echo loop)
     if (isAgentSpeaking || isProcessing) {
       vadAnimationFrameId = requestAnimationFrame(checkVolume);
       return;
@@ -397,21 +415,43 @@ function startVADLoop() {
     }
     const rms = Math.sqrt(sum / bufferLength);
 
-    if (rms > VAD_SPEECH_THRESHOLD) {
-      // User is actively speaking
-      if (!isUserSpeaking) {
-        isUserSpeaking = true;
-        speechStartTime = Date.now();
-        setOrbState('hearing', 'Listening to you...', 'Voice energy detected...');
-      }
+    // Dynamic adaptive threshold: at least 0.040, or 2.2x ambient noise
+    const dynamicThreshold = Math.max(0.042, ambientNoiseFloor * 2.2);
 
-      // Reset silence timer on any word/sound
+    if (rms > dynamicThreshold) {
+      voiceConsecutiveFrames++;
+      lastActiveVoiceTime = Date.now();
+
+      // Clear any pending silence timer since user is making voice sound
       if (silenceTimer) {
         clearTimeout(silenceTimer);
         silenceTimer = null;
       }
+
+      // Check if user has started speaking (debounced by ~60ms to avoid click false-alarms)
+      if (!isUserSpeaking && voiceConsecutiveFrames >= VAD_MIN_FRAMES_TO_START) {
+        isUserSpeaking = true;
+        speechStartTime = Date.now();
+        setOrbState('hearing', 'Listening to you...', 'Voice energy detected...');
+        agentStatusText.textContent = 'Hearing speech...';
+
+        // Set safety watchdog timer (don't stay in speaking state > 14s)
+        if (maxSpeechWatchdogTimer) clearTimeout(maxSpeechWatchdogTimer);
+        maxSpeechWatchdogTimer = setTimeout(() => {
+          if (isUserSpeaking && !isProcessing) {
+            onSilenceComplete();
+          }
+        }, VAD_MAX_SPEECH_MS);
+      }
     } else {
-      // Below threshold (silence)
+      voiceConsecutiveFrames = 0;
+
+      // Update ambient noise floor slowly when quiet (exponential moving average)
+      if (!isUserSpeaking) {
+        ambientNoiseFloor = ambientNoiseFloor * 0.96 + rms * 0.04;
+      }
+
+      // If user was speaking, start silence countdown
       if (isUserSpeaking) {
         if (!silenceTimer) {
           silenceTimer = setTimeout(() => {
@@ -428,29 +468,54 @@ function startVADLoop() {
 }
 
 function onSilenceComplete() {
-  silenceTimer = null;
-  const duration = Date.now() - speechStartTime;
+  if (silenceTimer) {
+    clearTimeout(silenceTimer);
+    silenceTimer = null;
+  }
+  if (maxSpeechWatchdogTimer) {
+    clearTimeout(maxSpeechWatchdogTimer);
+    maxSpeechWatchdogTimer = null;
+  }
 
-  // Ignore tiny accidental sounds
-  if (duration < VAD_MIN_SPEECH_MS) {
-    isUserSpeaking = false;
-    setOrbState('listening', 'Listening... Speak naturally', 'Pause for ~1s when finished');
+  // Calculate ACTUAL speech duration (excluding trailing silence)
+  const actualSpeechDuration = (lastActiveVoiceTime && speechStartTime) 
+    ? (lastActiveVoiceTime - speechStartTime) 
+    : 0;
+
+  isUserSpeaking = false;
+  voiceConsecutiveFrames = 0;
+
+  // Reject accidental short noises (clicks, keyboard, breath)
+  if (actualSpeechDuration < VAD_MIN_SPEECH_MS) {
+    setOrbState('listening', 'Listening... Speak naturally', 'Pause for ~1s when finished; Aria will reply automatically');
+    agentStatusText.textContent = 'Live Listening...';
+    // Restart recorder slice so noise chunks don't pollute next turn
+    startLiveRecorderSlice();
     return;
   }
 
-  isUserSpeaking = false;
   isProcessing = true;
-
   setOrbState('thinking', 'Aria is thinking...', `Generating response via ${activeEngineDisplay.textContent}...`);
   agentStatusText.textContent = 'Thinking...';
 
   // Stop recorder slice and send
   if (mediaRecorder && mediaRecorder.state === 'recording') {
     mediaRecorder.onstop = () => {
-      const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
-      sendVoiceAudio(blob);
+      if (audioChunks.length > 0) {
+        const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType });
+        if (blob.size > 2000) {
+          sendVoiceAudio(blob);
+          return;
+        }
+      }
+      // If empty or too small, restart listening
+      isProcessing = false;
+      resumeLiveListening();
     };
     mediaRecorder.stop();
+  } else {
+    isProcessing = false;
+    resumeLiveListening();
   }
 }
 
@@ -461,21 +526,28 @@ async function sendVoiceAudio(audioBlob) {
   formData.append('language', activeLanguage); // Send locked language
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+
     const response = await fetch(`${API_BASE}/api/chat/voice`, {
       method: 'POST',
-      body: formData
+      body: formData,
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     const data = await response.json();
     isProcessing = false;
 
     if (data.error) {
-      if (data.transcription === '') {
+      if (!data.transcription) {
         console.warn('VAD: Empty transcription');
       } else {
         showToast(data.error);
       }
-      if (interactionMode === 'live') resumeLiveListening();
+      if (interactionMode === 'live') {
+        setTimeout(resumeLiveListening, 400);
+      }
       return;
     }
 
@@ -501,8 +573,14 @@ async function sendVoiceAudio(audioBlob) {
   } catch (err) {
     console.error('Voice pipeline error:', err);
     isProcessing = false;
-    showToast('Connection error to server.');
-    if (interactionMode === 'live') resumeLiveListening();
+    if (err.name === 'AbortError') {
+      showToast('Server response timed out. Resuming...');
+    } else {
+      showToast('Connection error to server.');
+    }
+    if (interactionMode === 'live') {
+      setTimeout(resumeLiveListening, 800);
+    }
   }
 }
 
@@ -512,6 +590,18 @@ function resumeLiveListening() {
   isAgentSpeaking = false;
   isUserSpeaking = false;
   isProcessing = false;
+  voiceConsecutiveFrames = 0;
+  lastActiveVoiceTime = 0;
+  speechStartTime = 0;
+
+  if (silenceTimer) {
+    clearTimeout(silenceTimer);
+    silenceTimer = null;
+  }
+  if (maxSpeechWatchdogTimer) {
+    clearTimeout(maxSpeechWatchdogTimer);
+    maxSpeechWatchdogTimer = null;
+  }
 
   setOrbState('listening', 'Listening... Speak naturally', 'Pause for ~1s when finished; Aria will reply automatically');
   agentStatusText.textContent = 'Live Listening...';

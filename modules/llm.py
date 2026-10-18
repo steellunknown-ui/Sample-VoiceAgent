@@ -135,19 +135,27 @@ def get_llm_response(
             response = client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                max_tokens=120,         # Keep responses crisp (1-2 sentences) to save voice credits
-                temperature=0.7,        # Natural, warm conversational
+                max_tokens=80,          # Crisp 1-2 spoken sentences for ultra-fast response (< 2s)
+                temperature=0.6,        # Natural, low entropy for faster sampling
                 top_p=0.9,
-                timeout=12,             # Fast failover if model is slow
+                timeout=10,             # Fast failover if model is slow
                 **extra_params
             )
             
             msg = response.choices[0].message
-            reply = msg.content or getattr(msg, "reasoning", "") or ""
+            reply = msg.content or ""
+            if not reply:
+                reply = getattr(msg, "reasoning", "") or ""
+            
+            # Strip any reasoning or think blocks from LLM response
+            import re
+            reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL)
+            reply = re.sub(r"(?i)here's a thinking process.*?\n\n", "", reply, flags=re.DOTALL)
             reply = reply.strip()
             
             if reply:
-                print(f"[LLM] Response from {model_name}: '{reply[:100]}...' " if len(reply) > 100 else f"[LLM] Response: '{reply}'")
+                safe_preview = reply[:100].encode('ascii', 'replace').decode()
+                print(f"[LLM] Response from {model_name}: '{safe_preview}...'")
                 return reply
             else:
                 print(f"[LLM] Empty response from {model_name}, trying fallback...")
@@ -155,7 +163,7 @@ def get_llm_response(
                 
         except Exception as e:
             last_error = str(e)
-            print(f"[LLM] Error with {model_name}: {last_error}")
+            print(f"[LLM] Error with {model_name}: {last_error.encode('ascii', 'replace').decode()}")
             continue
 
     # If all models failed:
