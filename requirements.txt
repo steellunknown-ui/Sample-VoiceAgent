@@ -1,34 +1,22 @@
-# Voice Agent — Python Dependencies
-# Install with: pip install -r requirements.txt
-
-# Core Web Framework
+# Voice Agent — Production Python Dependencies
 flask==3.0.3
 flask-cors==5.0.0
+gunicorn==22.0.0
 
 # OpenAI-compatible API client (for OpenRouter)
 openai==1.51.0
 
-# Speech-to-Text (local Whisper — no API cost)
+# Speech-to-Text (local Whisper)
 faster-whisper==1.0.3
 
-# Text-to-Speech (Microsoft Edge TTS — free, very natural)
+# Text-to-Speech (Microsoft Edge TTS fallback)
 edge-tts==6.1.12
 
-# Audio Processing
-sounddevice==0.5.0
+# Audio Processing & Data
 soundfile==0.12.1
 numpy==1.26.4
-scipy==1.14.1
 
-# Language Detection
-langdetect==1.0.9
-
-# Environment management
+# Environment & Network
 python-dotenv==1.0.1
-
-# Async support
 aiofiles==24.1.0
-asyncio-throttle==1.0.2
-
-# Utilities
 requests==2.32.3
